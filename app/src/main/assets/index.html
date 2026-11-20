@@ -1,0 +1,488 @@
+
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#121212">
+<meta name="description" content="SmartLamp — локальный пульт управления RGB-лентой">
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" type="image/png" sizes="192x192" href="/icons/icon-192.png">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<title>SmartLamp</title>
+<style>
+:root {
+  color-scheme: dark;
+  --bg: #121212;
+  --card: #1E1E1E;
+  --line: #2C2C2C;
+  --text: #F2F2F2;
+  --muted: #9A9A9A;
+  --accent: #D8B87A;
+  --accent-bg: #2A251C;
+  --control: #262626;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; min-height: 100%; }
+body {
+  font-family: Roboto, "Segoe UI", system-ui, -apple-system, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  padding: 16px 12px 104px;
+}
+.app { width: 100%; max-width: 520px; margin: 0 auto; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 4px 18px; }
+h1 { margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -.01em; }
+.subtitle { margin-top: 4px; color: var(--muted); font-size: 12px; }
+.status { display: inline-flex; align-items: center; gap: 8px; min-width: 0; padding: 8px 12px;
+  border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--muted); font-size: 12px; }
+.status span:last-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.dot { width: 8px; height: 8px; flex: none; border-radius: 50%; background: #8A8A8A; }
+.dot.online { background: var(--accent); }
+.card { border: 1px solid var(--line); border-radius: 20px; background: var(--card); padding: 18px; }
+.panel { display: none; }
+.panel.active { display: block; }
+.section { margin-top: 22px; }
+.section:first-child { margin-top: 0; }
+.section-title { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; margin-bottom: 12px;
+  font-size: 13px; color: var(--muted); }
+.section-title strong { color: var(--text); font-size: 14px; font-weight: 600; }
+.row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+button { font: inherit; color: var(--text); border: 1px solid var(--line); background: var(--control);
+  border-radius: 14px; min-height: 52px; padding: 12px 14px; cursor: pointer;
+  transition: background .15s ease, border-color .15s ease; }
+button:hover { background: #2E2E2E; }
+button:active { background: #333; }
+button:disabled { opacity: .5; cursor: wait; }
+button.primary { background: var(--accent-bg); border-color: #4A4030; color: #F3E3C4; font-weight: 600; }
+button.active { border-color: var(--accent); background: var(--accent-bg); color: #F3E3C4; }
+button.wide { width: 100%; }
+button.text { min-height: 44px; background: transparent; color: var(--muted); }
+.palette { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 8px; }
+.swatch-button { min-height: 40px; padding: 0; border: 2px solid transparent; border-radius: 12px; }
+.swatch-button.active { border-color: var(--accent); }
+.color-line { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+input[type="color"] { width: 52px; height: 48px; flex: none; padding: 2px; border: 1px solid var(--line);
+  border-radius: 12px; background: var(--control); cursor: pointer; }
+.hex, .text-input { width: 100%; min-width: 0; font: inherit; font-size: 15px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 12px; background: #161616; color: var(--text); }
+.live { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: #191919; }
+.live-swatch { width: 34px; height: 34px; flex: none; border-radius: 50%; background: #000; border: 1px solid var(--line); }
+.live-info { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.live-label { color: var(--muted); font-size: 11px; }
+.live-value { font-size: 14px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+input[type="range"] { width: 100%; height: 32px; margin: 0; accent-color: var(--accent); cursor: pointer; }
+select { width: 100%; min-height: 52px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 14px;
+  background: #161616; color: var(--text); font: inherit; }
+.mode-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.mode-grid button { min-height: 58px; font-size: 14px; }
+button.strobe { border-color: #5A4B30; background: var(--accent-bg); color: #F0DFBC; font-weight: 600; }
+.hint { color: var(--muted); font-size: 12px; line-height: 1.5; margin-top: 10px; }
+.message { min-height: 18px; margin-top: 18px; color: var(--muted); font-size: 12px; text-align: center; }
+.device-list { display: flex; flex-direction: column; gap: 8px; margin-top: 12px; }
+.device { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 12px 14px;
+  border: 1px solid var(--line); border-radius: 14px; background: #191919; font-size: 13px; }
+.device-name { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.device button { min-height: 40px; padding: 8px 12px; font-size: 12px; }
+.bottom-nav { position: fixed; left: 50%; bottom: max(12px, env(safe-area-inset-bottom)); transform: translateX(-50%);
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px; width: min(520px, calc(100% - 24px));
+  padding: 6px; border: 1px solid var(--line); border-radius: 18px; background: #1A1A1A; }
+.bottom-nav button { min-height: 56px; border-color: transparent; background: transparent; color: var(--muted);
+  border-radius: 13px; font-size: 13px; }
+.bottom-nav button.active { border-color: transparent; background: var(--accent-bg); color: #F0DFBC; }
+.pwa-hint { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px;
+  background: #191919; color: var(--muted); font-size: 12px; line-height: 1.5; }
+@media (min-width: 560px) { body { padding-top: 28px; } }
+@media (max-width: 480px) {
+  header { align-items: flex-start; flex-direction: column; }
+  .status { width: 100%; justify-content: flex-start; }
+}
+@media (max-width: 360px) {
+  .palette { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .row { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div><h1>SmartLamp</h1><div class="subtitle">Локальный пульт · порт 5000</div></div>
+    <div class="status"><span id="status-dot" class="dot"></span><span id="status-text">Подключение...</span></div>
+  </header>
+
+  <main class="card">
+    <section id="panel-light" class="panel active">
+      <div class="row">
+        <button id="on" class="primary">Вкл</button>
+        <button id="off" class="danger">Выкл</button>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Цвет</strong><span>палитра</span></div>
+        <div id="palette" class="palette">
+          <button type="button" class="swatch-button" data-color="#FFFFFF" style="background:#FFFFFF" aria-label="Белый"></button>
+          <button type="button" class="swatch-button" data-color="#FFE6C2" style="background:#FFE6C2" aria-label="Тёплый белый"></button>
+          <button type="button" class="swatch-button" data-color="#FFC27A" style="background:#FFC27A" aria-label="Янтарный"></button>
+          <button type="button" class="swatch-button" data-color="#E57B7B" style="background:#E57B7B" aria-label="Красный"></button>
+          <button type="button" class="swatch-button" data-color="#8FBF8F" style="background:#8FBF8F" aria-label="Зелёный"></button>
+          <button type="button" class="swatch-button" data-color="#7FA8D8" style="background:#7FA8D8" aria-label="Синий"></button>
+          <button type="button" class="swatch-button" data-color="#B7A3D9" style="background:#B7A3D9" aria-label="Фиолетовый"></button>
+          <button type="button" class="swatch-button" data-color="#1A1A1A" style="background:#1A1A1A" aria-label="Тёмный"></button>
+        </div>
+        <div class="color-line">
+          <input id="color" type="color" value="#ffffff" aria-label="Свой цвет">
+          <div id="hex" class="hex">#FFFFFF</div>
+        </div>
+        <div class="live">
+          <div id="live-swatch" class="live-swatch"></div>
+          <div class="live-info">
+            <span class="live-label">Сейчас горит</span>
+            <span id="live-value" class="live-value">#000000 · выкл</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Яркость</strong><span id="brightness-value">255</span></div>
+        <input id="brightness" type="range" min="0" max="255" value="255" aria-label="Яркость">
+      </div>
+
+      <div class="section"><button id="connect" class="wide text">Переподключиться к ленте</button></div>
+    </section>
+
+    <section id="panel-modes" class="panel">
+      <div class="section">
+        <div class="section-title"><strong>Режимы подсветки</strong><span>прошивка / ПО</span></div>
+        <div class="mode-grid">
+          <button data-mode="jump_rgb">Скачок RGB</button>
+          <button data-mode="jump_multi">Скачок 7 цветов</button>
+          <button data-mode="fade_rgb">Плавно RGB</button>
+          <button data-mode="fade_multi">Плавно 7 цветов</button>
+          <button data-mode="blink_multi">Мигание 7 цв.</button>
+          <button data-mode="rainbow">Радуга (ПО)</button>
+          <button data-mode="strobe" class="strobe">⚡ Стробоскоп</button>
+          <button data-mode="pulse">Пульс (ПО)</button>
+          <button data-mode="off">Статичный цвет</button>
+        </div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Скорость стробоскопа</strong><span id="strobe-value">60 мс · ~8.3 Гц</span></div>
+        <input id="strobe-interval" type="range" min="20" max="300" step="5" value="60" aria-label="Скорость стробоскопа">
+        <div class="hint">Полное выключение и яркий белый свет. Меньше интервал — быстрее вспышки.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Скорость эффекта</strong><span id="speed-value">128</span></div>
+        <input id="speed" type="range" min="0" max="255" value="128" aria-label="Скорость эффекта">
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Профиль команд</strong><span>ELK</span></div>
+        <select id="profile" aria-label="Профиль команд включения">
+          <option value="given">Заданные команды (7e00...)</option>
+          <option value="bleddm">ELK-BLEDDM (7e04...)</option>
+        </select>
+      </div>
+    </section>
+
+    <section id="panel-settings" class="panel">
+      <div class="section">
+        <div class="section-title"><strong>Адрес лампы / сервера</strong><span>Wi-Fi</span></div>
+        <input id="base-url" class="text-input" type="text" placeholder="например 192.168.1.50:5000" aria-label="IP-адрес лампы">
+        <div class="hint">Укажите локальный IP-адрес лампы или сервера управления в домашней сети. Адрес сохраняется в памяти приложения (DOM Storage). Поддерживаются HTTP-команды к API.</div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Пресеты</strong><span>сохранение</span></div>
+        <div class="row">
+          <input id="preset-name" class="text-input" type="text" placeholder="Название пресета" aria-label="Название пресета">
+          <button id="save-preset">Сохранить</button>
+        </div>
+        <div class="hint">Сохраняет текущий цвет, яркость, скорость и режим. Пресеты хранятся локально.</div>
+        <div id="presets-list" class="device-list"></div>
+      </div>
+
+      <div class="section">
+        <div class="section-title"><strong>Таймер выключения</strong><span>минуты</span></div>
+        <div class="row">
+          <input id="timer-minutes" class="text-input" type="number" min="1" max="720" placeholder="Минуты" aria-label="Таймер в минутах">
+          <button id="set-timer">Старт</button>
+        </div>
+        <button id="clear-timer" class="wide text" style="margin-top:8px;">Сбросить таймер</button>
+        <div id="timer-status" class="hint">Таймер не установлен</div>
+      </div>
+
+      <div id="settings-message" class="message"></div>
+    </section>
+  </main>
+
+  <div id="message" class="message"></div>
+  <div id="pwa-hint" class="pwa-hint" hidden></div>
+
+
+
+  <nav class="bottom-nav" aria-label="Навигация">
+    <button type="button" class="active" data-tab="light">Свет</button>
+    <button type="button" data-tab="modes">Режимы</button>
+    <button type="button" data-tab="settings">Настройки</button>
+  </nav>
+</div>
+<script>
+const colorInput = document.getElementById('color');
+const hexLabel = document.getElementById('hex');
+const liveSwatch = document.getElementById('live-swatch');
+const liveValue = document.getElementById('live-value');
+const brightnessInput = document.getElementById('brightness');
+const brightnessValue = document.getElementById('brightness-value');
+const speedInput = document.getElementById('speed');
+const speedValue = document.getElementById('speed-value');
+const strobeInput = document.getElementById('strobe-interval');
+const strobeValue = document.getElementById('strobe-value');
+const profileSelect = document.getElementById('profile');
+const statusDot = document.getElementById('status-dot');
+const statusText = document.getElementById('status-text');
+const messageText = document.getElementById('message');
+const palette = document.getElementById('palette');
+const baseUrlInput = document.getElementById('base-url');
+const presetNameInput = document.getElementById('preset-name');
+const presetsList = document.getElementById('presets-list');
+const settingsMessage = document.getElementById('settings-message');
+const timerMinutesInput = document.getElementById('timer-minutes');
+const timerStatus = document.getElementById('timer-status');
+
+const PRESETS_KEY = 'smartlamp_presets';
+const BASE_KEY = 'smartlamp_base_url';
+let baseUrl = localStorage.getItem(BASE_KEY) || '';
+let presets = [];
+let offTimer = null;
+let offTimerEndsAt = null;
+
+function loadPresets() {
+  try { presets = JSON.parse(localStorage.getItem(PRESETS_KEY) || '[]'); } catch (_) { presets = []; }
+}
+
+function savePresets() {
+  localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
+}
+
+function getBase() {
+  let v = (baseUrlInput ? baseUrlInput.value : baseUrl).trim();
+  if (!v) return '';
+  if (!/^https?:\/\//i.test(v) && !/^wss?:\/\//i.test(v)) v = 'http://' + v;
+  return v.replace(/\/$/, '');
+}
+
+function apiPath(path) {
+  const b = getBase();
+  return b ? b + path : path;
+}
+
+function showSettingsMessage(text) {
+  if (settingsMessage) settingsMessage.textContent = text || '';
+}
+
+async function post(path, body) {
+  const url = apiPath(path);
+  if (url.startsWith('file:') || (!getBase() && location.protocol === 'file:')) {
+    throw new Error('Укажите IP-адрес лампы в настройках');
+  }
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(body || {})
+  });
+  return response.json();
+}
+
+function strobeLabel(ms) {
+  return ms + ' мс · ~' + (1000 / (2 * ms)).toFixed(1) + ' Гц';
+}
+
+function applyStatus(state) {
+  if (!state) return;
+  statusDot.className = 'dot ' + (state.connected ? 'online' : '');
+  statusText.textContent = state.connected ? (state.device || 'Подключено') : 'Не подключено';
+  messageText.textContent = state.message || '';
+  const live = state.live_color || '#000000';
+  const modeLabels = { rainbow: 'радуга', strobe: 'стробоскоп', pulse: 'пульс', off: 'вкл' };
+  liveSwatch.style.background = live;
+  liveValue.textContent = live + ' · ' + (state.power ? (modeLabels[state.mode] || state.mode || 'вкл') : 'выкл');
+  if (document.activeElement !== colorInput && state.color) {
+    colorInput.value = state.color;
+    hexLabel.textContent = state.color;
+  }
+  if (document.activeElement !== brightnessInput && state.brightness != null) {
+    brightnessInput.value = state.brightness;
+    brightnessValue.textContent = state.brightness;
+  }
+  if (document.activeElement !== speedInput && state.speed != null) {
+    speedInput.value = state.speed;
+    speedValue.textContent = state.speed;
+  }
+  if (document.activeElement !== strobeInput && state.strobe_interval != null) {
+    strobeInput.value = state.strobe_interval;
+    strobeValue.textContent = strobeLabel(Number(state.strobe_interval));
+  }
+  if (state.profile) profileSelect.value = state.profile;
+  palette.querySelectorAll('[data-color]').forEach(button => {
+    const c = (state.color || '').toUpperCase();
+    button.classList.toggle('active', button.dataset.color.toUpperCase() === c);
+  });
+  document.querySelectorAll('[data-mode]').forEach(button => {
+    button.classList.toggle('active', button.dataset.mode === (state.mode || 'off'));
+  });
+}
+
+async function refresh() {
+  if (!getBase() && location.protocol === 'file:') {
+    statusText.textContent = 'Укажите адрес лампы';
+    return;
+  }
+  try {
+    const r = await fetch(apiPath('/api/status'));
+    applyStatus(await r.json());
+  } catch (error) {
+    messageText.textContent = 'Нет связи с лампой/сервером';
+  }
+}
+
+function renderPresets() {
+  if (!presetsList) return;
+  presetsList.innerHTML = '';
+  presets.forEach((p, idx) => {
+    const row = document.createElement('div');
+    row.className = 'device';
+    const label = document.createElement('span');
+    label.className = 'device-name';
+    label.textContent = p.name || ('Пресет ' + (idx + 1));
+    const actions = document.createElement('div');
+    actions.style.display = 'flex'; actions.style.gap = '6px';
+    const applyBtn = document.createElement('button');
+    applyBtn.textContent = 'Применить';
+    applyBtn.addEventListener('click', () => applyPreset(p));
+    const delBtn = document.createElement('button');
+    delBtn.textContent = 'Удалить';
+    delBtn.addEventListener('click', () => { presets.splice(idx,1); savePresets(); renderPresets(); });
+    actions.appendChild(applyBtn); actions.appendChild(delBtn);
+    row.appendChild(label); row.appendChild(actions);
+    presetsList.appendChild(row);
+  });
+}
+
+async function applyPreset(p) {
+  try {
+    if (p.color) applyStatus(await post('/api/color', { color: p.color }));
+    if (p.brightness != null) applyStatus(await post('/api/brightness', { brightness: Number(p.brightness) }));
+    if (p.mode) applyStatus(await post('/api/mode', { mode: p.mode }));
+    if (p.speed != null) applyStatus(await post('/api/speed', { speed: Number(p.speed) }));
+    showSettingsMessage('Пресет применён');
+  } catch (e) { showSettingsMessage('Ошибка: ' + e.message); }
+}
+
+function saveCurrentPreset() {
+  const name = (presetNameInput.value || '').trim() || ('Пресет ' + (presets.length + 1));
+  const preset = {
+    name,
+    color: colorInput.value.toUpperCase(),
+    brightness: Number(brightnessInput.value),
+    speed: Number(speedInput.value),
+    mode: document.querySelector('[data-mode].active')?.dataset.mode || 'off'
+  };
+  presets.push(preset);
+  savePresets();
+  presetNameInput.value = '';
+  renderPresets();
+  showSettingsMessage('Пресет сохранён');
+}
+
+function updateTimerStatus() {
+  if (!timerStatus) return;
+  if (!offTimerEndsAt) { timerStatus.textContent = 'Таймер не установлен'; return; }
+  const left = Math.max(0, Math.ceil((offTimerEndsAt - Date.now()) / 1000));
+  const m = Math.floor(left / 60), s = left % 60;
+  timerStatus.textContent = 'Выключение через ' + m + ':' + String(s).padStart(2,'0');
+}
+
+function setOffTimer() {
+  const min = Number(timerMinutesInput.value || 0);
+  if (offTimer) { clearInterval(offTimer); offTimer = null; }
+  offTimerEndsAt = null;
+  if (min <= 0) { updateTimerStatus(); showSettingsMessage('Таймер отключён'); return; }
+  offTimerEndsAt = Date.now() + min * 60000;
+  offTimer = setInterval(async () => {
+    updateTimerStatus();
+    if (Date.now() >= offTimerEndsAt) {
+      clearInterval(offTimer); offTimer = null; offTimerEndsAt = null; updateTimerStatus();
+      try { applyStatus(await post('/api/power/off')); } catch (_) {}
+    }
+  }, 1000);
+  updateTimerStatus();
+  showSettingsMessage('Таймер установлен на ' + min + ' мин');
+}
+
+document.querySelectorAll('.bottom-nav button').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.bottom-nav button').forEach(item => item.classList.toggle('active', item === tab));
+    document.querySelectorAll('.panel').forEach(panel => {
+      panel.classList.toggle('active', panel.id === 'panel-' + tab.dataset.tab);
+    });
+    if (tab.dataset.tab !== 'settings') refresh();
+  });
+});
+
+document.getElementById('on').addEventListener('click', async () => { try { applyStatus(await post('/api/power/on')); } catch(e){ messageText.textContent=e.message; } });
+document.getElementById('off').addEventListener('click', async () => { try { applyStatus(await post('/api/power/off')); } catch(e){ messageText.textContent=e.message; } });
+document.getElementById('connect').addEventListener('click', async () => { try { applyStatus(await post('/api/connect')); } catch(e){ messageText.textContent=e.message; } });
+colorInput.addEventListener('input', () => { hexLabel.textContent = colorInput.value.toUpperCase(); });
+colorInput.addEventListener('change', async () => { try { applyStatus(await post('/api/color', { color: colorInput.value })); } catch(e){ messageText.textContent=e.message; } });
+palette.addEventListener('click', async event => {
+  const button = event.target.closest('[data-color]');
+  if (!button) return;
+  colorInput.value = button.dataset.color;
+  hexLabel.textContent = button.dataset.color.toUpperCase();
+  try { applyStatus(await post('/api/color', { color: button.dataset.color })); } catch(e){ messageText.textContent=e.message; }
+});
+brightnessInput.addEventListener('input', () => { brightnessValue.textContent = brightnessInput.value; });
+brightnessInput.addEventListener('change', async () => { try { applyStatus(await post('/api/brightness', { brightness: Number(brightnessInput.value) })); } catch(e){ messageText.textContent=e.message; } });
+speedInput.addEventListener('input', () => { speedValue.textContent = speedInput.value; });
+speedInput.addEventListener('change', async () => { try { applyStatus(await post('/api/speed', { speed: Number(speedInput.value) })); } catch(e){ messageText.textContent=e.message; } });
+let strobeTimer = null;
+strobeInput.addEventListener('input', () => {
+  strobeValue.textContent = strobeLabel(Number(strobeInput.value));
+  clearTimeout(strobeTimer);
+  strobeTimer = setTimeout(async () => {
+    try { applyStatus(await post('/api/strobe', { interval: Number(strobeInput.value) })); } catch (e) { messageText.textContent = e.message; }
+  }, 150);
+});
+profileSelect.addEventListener('change', async () => { try { applyStatus(await post('/api/profile', { profile: profileSelect.value })); } catch(e){ messageText.textContent=e.message; } });
+document.querySelectorAll('[data-mode]').forEach(button => {
+  button.addEventListener('click', async () => { try { applyStatus(await post('/api/mode', { mode: button.dataset.mode })); } catch(e){ messageText.textContent=e.message; } });
+});
+
+if (baseUrlInput) {
+  baseUrlInput.value = baseUrl;
+  baseUrlInput.addEventListener('change', () => {
+    baseUrl = getBase();
+    localStorage.setItem(BASE_KEY, baseUrl);
+    baseUrlInput.value = baseUrl;
+    showSettingsMessage(baseUrl ? 'Адрес сохранён' : 'Адрес очищен');
+    refresh();
+  });
+}
+document.getElementById('save-preset').addEventListener('click', saveCurrentPreset);
+document.getElementById('set-timer').addEventListener('click', setOffTimer);
+document.getElementById('clear-timer').addEventListener('click', () => { timerMinutesInput.value = ''; setOffTimer(); });
+
+loadPresets();
+renderPresets();
+updateTimerStatus();
+if (!getBase()) { showSettingsMessage('Укажите IP-адрес лампы или сервера (например 192.168.1.50:5000)'); }
+setInterval(refresh, 2000);
+refresh();
+</script>
+</body>
+</html>
