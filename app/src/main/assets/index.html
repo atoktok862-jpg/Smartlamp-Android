@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#121212">
-<meta name="description" content="SmartLamp тАФ ╤Г╨┐╤А╨░╨▓╨╗╨╡╨╜╨╕╨╡ RGB-╨╗╨╡╨╜╤В╨╛╨╣ ╨╜╨░╨┐╤А╤П╨╝╤Г╤О ╨┐╨╛ Bluetooth">
+<meta name="description" content="SmartLamp — управление RGB-лентой напрямую по Bluetooth">
 <link rel="manifest" href="./manifest.json">
 <link rel="icon" type="image/png" sizes="192x192" href="./icon-192.png">
 <link rel="apple-touch-icon" href="./icon-192.png">
@@ -94,6 +94,16 @@ button.primary { border-color: #4A4030; background: var(--accent-bg); color: #F3
 .bottom-nav button { min-height: 56px; border-color: transparent; background: transparent; color: var(--muted);
   border-radius: 13px; font-size: 13px; }
 .bottom-nav button.active { border-color: transparent; background: var(--accent-bg); color: #F0DFBC; }
+/* FNAF mode */
+.fnaf-remote { position: fixed; inset: 0; z-index: 50; display: none; align-items: center; justify-content: center; background: #000; }
+.fnaf-remote.active { display: flex; }
+.fnaf-body { position: relative; width: min(78vw, 320px); aspect-ratio: 1 / 1; background: linear-gradient(180deg,#2b2b2b 0%, #171717 100%); border: 4px solid #3e3e3e; border-radius: 34px; box-shadow: 0 20px 50px rgba(0,0,0,.7), inset 0 2px 0 rgba(255,255,255,.06), inset 0 -3px 0 rgba(0,0,0,.35); display: flex; align-items: center; justify-content: center; }
+.fnaf-antenna { position: absolute; top: -74px; left: 50%; width: 6px; height: 80px; margin-left: -3px; background: linear-gradient(180deg,#9a9a9a,#4a4a4a); border-radius: 4px; transform: rotate(-8deg); transform-origin: bottom center; }
+.fnaf-antenna::after { content: ''; position: absolute; top: -10px; left: 50%; width: 18px; height: 18px; margin-left: -9px; border-radius: 50%; background: #b5b5b5; box-shadow: inset -2px -2px 4px rgba(0,0,0,.4); }
+.fnaf-button { width: 58%; aspect-ratio: 1 / 1; border-radius: 50%; border: none; background: radial-gradient(circle at 35% 30%, #ff5c5c 0%, #d60000 55%, #7a0000 100%); box-shadow: 0 14px 0 #4a0000, 0 18px 28px rgba(0,0,0,.6), inset 0 3px 6px rgba(255,255,255,.25); cursor: pointer; padding: 0; min-height: 0; transition: transform .05s ease, box-shadow .05s ease; -webkit-tap-highlight-color: transparent; touch-action: none; }
+.fnaf-button:active, .fnaf-button.pressed { transform: translateY(10px); box-shadow: 0 4px 0 #4a0000, 0 8px 16px rgba(0,0,0,.6), inset 0 1px 4px rgba(255,255,255,.15); }
+.fnaf-close { position: absolute; top: 14px; right: 14px; width: 44px; height: 44px; min-height: 44px; border-radius: 12px; border: 1px solid #333; background: #1a1a1a; color: #888; font-size: 22px; line-height: 1; padding: 0; }
+button.fnaf-mode-btn { border-color: #5a3030; background: #2a1c1c; color: #f0c0c0; font-weight: 600; }
 @media (min-width: 560px) { body { padding-top: 28px; } }
 @media (max-width: 480px) {
   header { align-items: flex-start; flex-direction: column; }
@@ -108,85 +118,86 @@ button.primary { border-color: #4A4030; background: var(--accent-bg); color: #F3
 <body>
 <div class="app">
   <header>
-    <div><h1>SmartLamp</h1><div class="subtitle">╨Я╤А╤П╨╝╨╛╨╡ BLE-╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ┬╖ ╨▒╨╡╨╖ ╤Б╨╡╤А╨▓╨╡╤А╨░</div></div>
-    <div class="status"><span id="status-dot" class="dot"></span><span id="status-text">╨Э╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛</span></div>
+    <div><h1>SmartLamp</h1><div class="subtitle">Прямое Bluetooth-подключение · автоподключение</div></div>
+    <div class="status"><span id="status-dot" class="dot"></span><span id="status-text">Не подключено</span></div>
   </header>
 
-  <button id="connect" class="connect-button">╨Я╨╛╨┤╨║╨╗╤О╤З╨╕╤В╤М ╨╗╨╡╨╜╤В╤Г</button>
+  <button id="connect" class="connect-button">Подключить ленту</button>
   <div class="connect-row">
     <span id="device-name" class="device-name"></span>
-    <button id="disconnect" class="text" hidden>╨Ю╤В╨║╨╗╤О╤З╨╕╤В╤М</button>
+    <button id="disconnect" class="text" hidden>Отключить</button>
   </div>
 
   <main class="card">
     <section id="panel-light" class="panel active">
       <div class="row">
-        <button id="on" class="primary">╨Т╨║╨╗</button>
-        <button id="off">╨Т╤Л╨║╨╗</button>
+        <button id="on" class="primary">Вкл</button>
+        <button id="off">Выкл</button>
       </div>
 
       <div class="section">
-        <div class="section-title"><strong>╨ж╨▓╨╡╤В</strong><span>╨┐╨░╨╗╨╕╤В╤А╨░</span></div>
+        <div class="section-title"><strong>Цвет</strong><span>палитра</span></div>
         <div id="palette" class="palette">
-          <button type="button" class="swatch-button" data-color="#FFFFFF" style="background:#FFFFFF" aria-label="╨С╨╡╨╗╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#FFE6C2" style="background:#FFE6C2" aria-label="╨в╤С╨┐╨╗╤Л╨╣ ╨▒╨╡╨╗╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#FFC27A" style="background:#FFC27A" aria-label="╨п╨╜╤В╨░╤А╨╜╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#E57B7B" style="background:#E57B7B" aria-label="╨Ъ╤А╨░╤Б╨╜╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#8FBF8F" style="background:#8FBF8F" aria-label="╨Ч╨╡╨╗╤С╨╜╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#7FA8D8" style="background:#7FA8D8" aria-label="╨б╨╕╨╜╨╕╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#B7A3D9" style="background:#B7A3D9" aria-label="╨д╨╕╨╛╨╗╨╡╤В╨╛╨▓╤Л╨╣"></button>
-          <button type="button" class="swatch-button" data-color="#1A1A1A" style="background:#1A1A1A" aria-label="╨в╤С╨╝╨╜╤Л╨╣"></button>
+          <button type="button" class="swatch-button" data-color="#FFFFFF" style="background:#FFFFFF" aria-label="Белый"></button>
+          <button type="button" class="swatch-button" data-color="#FFE6C2" style="background:#FFE6C2" aria-label="Тёплый белый"></button>
+          <button type="button" class="swatch-button" data-color="#FFC27A" style="background:#FFC27A" aria-label="Янтарный"></button>
+          <button type="button" class="swatch-button" data-color="#E57B7B" style="background:#E57B7B" aria-label="Красный"></button>
+          <button type="button" class="swatch-button" data-color="#8FBF8F" style="background:#8FBF8F" aria-label="Зелёный"></button>
+          <button type="button" class="swatch-button" data-color="#7FA8D8" style="background:#7FA8D8" aria-label="Синий"></button>
+          <button type="button" class="swatch-button" data-color="#B7A3D9" style="background:#B7A3D9" aria-label="Фиолетовый"></button>
+          <button type="button" class="swatch-button" data-color="#1A1A1A" style="background:#1A1A1A" aria-label="Тёмный"></button>
         </div>
         <div class="color-line">
-          <input id="color" type="color" value="#ffffff" aria-label="╨б╨▓╨╛╨╣ ╤Ж╨▓╨╡╤В">
+          <input id="color" type="color" value="#ffffff" aria-label="Свой цвет">
           <div id="hex" class="hex">#FFFFFF</div>
         </div>
         <div class="live">
           <div id="live-swatch" class="live-swatch"></div>
           <div class="live-info">
-            <span class="live-label">╨б╨╡╨╣╤З╨░╤Б ╨│╨╛╤А╨╕╤В</span>
-            <span id="live-value" class="live-value">#000000 ┬╖ ╨▓╤Л╨║╨╗</span>
+            <span class="live-label">Сейчас горит</span>
+            <span id="live-value" class="live-value">#000000 · выкл</span>
           </div>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title"><strong>╨п╤А╨║╨╛╤Б╤В╤М</strong><span id="brightness-value">255</span></div>
-        <input id="brightness" type="range" min="0" max="255" value="255" aria-label="╨п╤А╨║╨╛╤Б╤В╤М">
+        <div class="section-title"><strong>Яркость</strong><span id="brightness-value">255</span></div>
+        <input id="brightness" type="range" min="0" max="255" value="255" aria-label="Яркость">
       </div>
     </section>
 
     <section id="panel-modes" class="panel">
       <div class="section">
-        <div class="section-title"><strong>╨а╨╡╨╢╨╕╨╝╤Л ╨┐╨╛╨┤╤Б╨▓╨╡╤В╨║╨╕</strong><span>╨┐╤А╨╛╤И╨╕╨▓╨║╨░ / ╨Я╨Ю</span></div>
+        <div class="section-title"><strong>Режимы подсветки</strong><span>прошивка / ПО</span></div>
         <div class="mode-grid">
-          <button data-mode="jump_rgb">╨б╨║╨░╤З╨╛╨║ RGB</button>
-          <button data-mode="jump_multi">╨б╨║╨░╤З╨╛╨║ 7 ╤Ж╨▓╨╡╤В╨╛╨▓</button>
-          <button data-mode="fade_rgb">╨Я╨╗╨░╨▓╨╜╨╛ RGB</button>
-          <button data-mode="fade_multi">╨Я╨╗╨░╨▓╨╜╨╛ 7 ╤Ж╨▓╨╡╤В╨╛╨▓</button>
-          <button data-mode="blink_multi">╨Ь╨╕╨│╨░╨╜╨╕╨╡ 7 ╤Ж╨▓.</button>
-          <button data-mode="rainbow">╨а╨░╨┤╤Г╨│╨░ (╨Я╨Ю)</button>
-          <button data-mode="strobe" class="strobe">тЪб ╨б╤В╤А╨╛╨▒╨╛╤Б╨║╨╛╨┐</button>
-          <button data-mode="pulse">╨Я╤Г╨╗╤М╤Б (╨Я╨Ю)</button>
-          <button data-mode="off">╨б╤В╨░╤В╨╕╤З╨╜╤Л╨╣ ╤Ж╨▓╨╡╤В</button>
+          <button data-mode="jump_rgb">Скачок RGB</button>
+          <button data-mode="jump_multi">Скачок 7 цветов</button>
+          <button data-mode="fade_rgb">Плавно RGB</button>
+          <button data-mode="fade_multi">Плавно 7 цветов</button>
+          <button data-mode="blink_multi">Мигание 7 цв.</button>
+          <button data-mode="rainbow">Радуга (ПО)</button>
+          <button data-mode="strobe" class="strobe">⚡ Стробоскоп</button>
+          <button data-mode="pulse">Пульс (ПО)</button>
+          <button data-mode="off">Статичный цвет</button>
+          <button data-mode="fnaf" class="fnaf-mode-btn">Режим FNAF</button>
         </div>
       </div>
 
       <div class="section">
-        <div class="section-title"><strong>╨б╨║╨╛╤А╨╛╤Б╤В╤М ╤Б╤В╤А╨╛╨▒╨╛╤Б╨║╨╛╨┐╨░</strong><span id="strobe-value">60 ╨╝╤Б ┬╖ ~8.3 ╨У╤Ж</span></div>
-        <input id="strobe-interval" type="range" min="20" max="300" step="5" value="60" aria-label="╨б╨║╨╛╤А╨╛╤Б╤В╤М ╤Б╤В╤А╨╛╨▒╨╛╤Б╨║╨╛╨┐╨░">
-        <div class="hint">╨Я╨╛╨╗╨╜╨╛╨╡ ╨▓╤Л╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ╨╕ ╤П╤А╨║╨╕╨╣ ╨▒╨╡╨╗╤Л╨╣ ╤Б╨▓╨╡╤В. ╨Ь╨╡╨╜╤М╤И╨╡ ╨╕╨╜╤В╨╡╤А╨▓╨░╨╗ тАФ ╨▒╤Л╤Б╤В╤А╨╡╨╡ ╨▓╤Б╨┐╤Л╤И╨║╨╕.</div>
+        <div class="section-title"><strong>Скорость стробоскопа</strong><span id="strobe-value">60 мс · ~8.3 Гц</span></div>
+        <input id="strobe-interval" type="range" min="20" max="300" step="5" value="60" aria-label="Скорость стробоскопа">
+        <div class="hint">Полное выключение и яркий белый свет. Меньше интервал — быстрее вспышки.</div>
       </div>
 
       <div class="section">
-        <div class="section-title"><strong>╨б╨║╨╛╤А╨╛╤Б╤В╤М ╤Н╤Д╤Д╨╡╨║╤В╨░</strong><span id="speed-value">128</span></div>
-        <input id="speed" type="range" min="0" max="255" value="128" aria-label="╨б╨║╨╛╤А╨╛╤Б╤В╤М ╤Н╤Д╤Д╨╡╨║╤В╨░">
+        <div class="section-title"><strong>Скорость эффекта</strong><span id="speed-value">128</span></div>
+        <input id="speed" type="range" min="0" max="255" value="128" aria-label="Скорость эффекта">
       </div>
 
       <div class="section">
-        <div class="section-title"><strong>╨Я╤А╨╛╤Д╨╕╨╗╤М ╨║╨╛╨╝╨░╨╜╨┤</strong><span>ELK</span></div>
-        <select id="profile" aria-label="╨Я╤А╨╛╤Д╨╕╨╗╤М ╨║╨╛╨╝╨░╨╜╨┤ ╨▓╨║╨╗╤О╤З╨╡╨╜╨╕╤П">
-          <option value="given">╨Ч╨░╨┤╨░╨╜╨╜╤Л╨╡ ╨║╨╛╨╝╨░╨╜╨┤╤Л (7e00...)</option>
+        <div class="section-title"><strong>Профиль команд</strong><span>ELK</span></div>
+        <select id="profile" aria-label="Профиль команд включения">
+          <option value="given">Заданные команды (7e00...)</option>
           <option value="bleddm">ELK-BLEDDM (7e04...)</option>
         </select>
       </div>
@@ -196,10 +207,18 @@ button.primary { border-color: #4A4030; background: var(--accent-bg); color: #F3
   <div id="message" class="message"></div>
   <div id="secure-hint" class="pwa-hint" hidden></div>
 
-  <nav class="bottom-nav" aria-label="╨Э╨░╨▓╨╕╨│╨░╤Ж╨╕╤П">
-    <button type="button" class="active" data-tab="light">╨б╨▓╨╡╤В</button>
-    <button type="button" data-tab="modes">╨а╨╡╨╢╨╕╨╝╤Л</button>
+  <nav class="bottom-nav" aria-label="Навигация">
+    <button type="button" class="active" data-tab="light">Свет</button>
+    <button type="button" data-tab="modes">Режимы</button>
   </nav>
+
+  <div id="fnaf-remote" class="fnaf-remote" aria-hidden="true">
+    <div class="fnaf-body">
+      <div class="fnaf-antenna"></div>
+      <button id="fnaf-close" class="fnaf-close" type="button" aria-label="Закрыть">×</button>
+      <button id="fnaf-btn" class="fnaf-button" type="button" aria-label="Кнопка"></button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -215,17 +234,17 @@ const OFF_COMMANDS = {
   bleddm: '7e0404000000ff00ef'
 };
 const EFFECTS = {
-  jump_rgb: { id: 0x87, label: '╨б╨║╨░╤З╨╛╨║ RGB' },
-  jump_multi: { id: 0x88, label: '╨б╨║╨░╤З╨╛╨║ 7 ╤Ж╨▓╨╡╤В╨╛╨▓' },
-  fade_rgb: { id: 0x89, label: '╨Я╨╗╨░╨▓╨╜╨╛ RGB' },
-  fade_multi: { id: 0x8A, label: '╨Я╨╗╨░╨▓╨╜╨╛ 7 ╤Ж╨▓╨╡╤В╨╛╨▓' },
-  blink_multi: { id: 0x95, label: '╨Ь╨╕╨│╨░╨╜╨╕╨╡ 7 ╤Ж╨▓╨╡╤В╨╛╨▓' }
+  jump_rgb: { id: 0x87, label: 'Скачок RGB' },
+  jump_multi: { id: 0x88, label: 'Скачок 7 цветов' },
+  fade_rgb: { id: 0x89, label: 'Плавно RGB' },
+  fade_multi: { id: 0x8A, label: 'Плавно 7 цветов' },
+  blink_multi: { id: 0x95, label: 'Мигание 7 цветов' }
 };
 const MODE_LABELS = {
-  strobe: '╤Б╤В╤А╨╛╨▒╨╛╤Б╨║╨╛╨┐',
-  rainbow: '╤А╨░╨┤╤Г╨│╨░',
-  pulse: '╨┐╤Г╨╗╤М╤Б',
-  off: '╨▓╨║╨╗'
+  strobe: 'стробоскоп',
+  rainbow: 'радуга',
+  pulse: 'пульс',
+  off: 'вкл'
 };
 
 const statusDot = document.getElementById('status-dot');
@@ -247,6 +266,11 @@ const strobeInput = document.getElementById('strobe-interval');
 const strobeValue = document.getElementById('strobe-value');
 const profileSelect = document.getElementById('profile');
 const secureHint = document.getElementById('secure-hint');
+
+const hasNativeBle = !!(window.AndroidBle && window.AndroidBle.isNative && window.AndroidBle.isNative());
+let nativeConnected = false;
+let fnafActive = false;
+let fnafHolding = false;
 
 let lampDevice = null;
 let rememberedDevice = null;
@@ -339,8 +363,13 @@ function effectCommand(id) {
 }
 
 async function send(hex) {
+  if (hasNativeBle) {
+    if (!nativeConnected) { showMessage('Сначала подключите ленту'); return false; }
+    try { return !!AndroidBle.write(hex); }
+    catch (e) { showMessage('Ошибка записи: ' + (e && e.message ? e.message : e)); return false; }
+  }
   if (!characteristic) {
-    showMessage('╨б╨╜╨░╤З╨░╨╗╨░ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╕╤В╨╡ ╨╗╨╡╨╜╤В╤Г');
+    showMessage('Сначала подключите ленту');
     return false;
   }
   try {
@@ -348,7 +377,7 @@ async function send(hex) {
     await writer.call(characteristic, hexToBytes(hex));
     return true;
   } catch (error) {
-    showMessage('╨Ю╤И╨╕╨▒╨║╨░ ╨╖╨░╨┐╨╕╤Б╨╕: ' + error.message);
+    showMessage('Ошибка записи: ' + error.message);
     return false;
   }
 }
@@ -379,14 +408,65 @@ function stopEffect() {
   }
 }
 
+async function enterFnafMode() {
+  fnafActive = true;
+  fnafHolding = false;
+  stopEffect();
+  mode = 'fnaf';
+  powerOn = false;
+  liveColor = null;
+  document.querySelectorAll('[data-mode]').forEach(b => b.classList.toggle('active', b.dataset.mode === 'fnaf'));
+  const remote = document.getElementById('fnaf-remote');
+  const btn = document.getElementById('fnaf-btn');
+  if (remote) { remote.classList.add('active'); remote.setAttribute('aria-hidden', 'false'); }
+  if (btn) btn.classList.remove('pressed');
+  if (await ensureConnected()) { await send(offCommand()); }
+  showMessage('Режим FNAF: удерживайте кнопку для света');
+}
+
+async function exitFnafMode() {
+  fnafActive = false;
+  fnafHolding = false;
+  const remote = document.getElementById('fnaf-remote');
+  const btn = document.getElementById('fnaf-btn');
+  if (btn) btn.classList.remove('pressed');
+  if (remote) { remote.classList.remove('active'); remote.setAttribute('aria-hidden', 'true'); }
+  mode = 'off';
+  powerOn = false;
+  liveColor = null;
+  await ensureConnected().catch(() => {});
+  try { await send(offCommand()); } catch (_) {}
+  applyState();
+  showMessage('Режим FNAF выключен');
+}
+
+async function fnafPress() {
+  if (!fnafActive || fnafHolding) return;
+  fnafHolding = true;
+  const btn = document.getElementById('fnaf-btn');
+  if (btn) btn.classList.add('pressed');
+  if (!await ensureConnected()) { fnafHolding = false; if (btn) btn.classList.remove('pressed'); return; }
+  await send(onCommand());
+  await send(brightnessCommand(255));
+  await send(colorCommand('FFFFFF'));
+}
+
+async function fnafRelease() {
+  if (!fnafActive || !fnafHolding) return;
+  fnafHolding = false;
+  const btn = document.getElementById('fnaf-btn');
+  if (btn) btn.classList.remove('pressed');
+  try { await send(offCommand()); } catch (_) {}
+}
+
 function renderLive() {
   const display = liveColor || (powerOn ? shade(color, brightness) : '#000000');
   liveSwatch.style.background = display;
-  liveValue.textContent = display + ' ┬╖ ' + (powerOn ? (MODE_LABELS[mode] || mode) : '╨▓╤Л╨║╨╗');
+  liveValue.textContent = display + ' · ' + (powerOn ? (MODE_LABELS[mode] || mode) : 'выкл');
 }
 
 function updateStrobeLabel() {
-  strobeValue.textContent = strobeInterval + ' ╨╝╤Б ┬╖ ~' + (1000 / (2 * strobeInterval)).toFixed(1) + ' ╨У╤Ж';
+  strobeValue.textContent = strobeInterval + ' мс · ~' + (1000 / (2 * strobeInterval)).toFixed(1) + ' Гц';
 }
 
 function applyState() {
@@ -422,14 +502,14 @@ function handleDisconnect(device) {
   stopEffect();
   characteristic = null;
   powerOn = false;
-  updateStatus(manualDisconnect ? '╨Э╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛' : '╨б╨╛╨╡╨┤╨╕╨╜╨╡╨╜╨╕╨╡ ╨┐╨╛╤В╨╡╤А╤П╨╜╨╛', false);
+  updateStatus(manualDisconnect ? 'Не подключено' : 'Соединение потеряно', false);
   deviceName.textContent = manualDisconnect ? '' : (device.name || 'ELK-BLEDDM');
   disconnectButton.hidden = true;
   applyState();
   if (manualDisconnect) {
     return;
   }
-  showMessage('╨б╨╛╨╡╨┤╨╕╨╜╨╡╨╜╨╕╨╡ ╤Б ╨╗╨╡╨╜╤В╨╛╨╣ ╨┐╨╛╤В╨╡╤А╤П╨╜╨╛');
+  showMessage('Соединение с лентой потеряно');
   scheduleReconnect(device);
 }
 
@@ -438,13 +518,13 @@ function scheduleReconnect(device) {
     return;
   }
   if (reconnectAttempts >= maxReconnectAttempts) {
-    showMessage('╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨▓╨╛╤Б╤Б╤В╨░╨╜╨╛╨▓╨╕╤В╤М ╤Б╨▓╤П╨╖╤М. ╨Э╨░╨╢╨╝╨╕╤В╨╡ ┬л╨Я╨╛╨┤╨║╨╗╤О╤З╨╕╤В╤М ╨╗╨╡╨╜╤В╤Г┬╗.');
+    showMessage('Не удалось восстановить связь. Нажмите «Подключить ленту».');
     return;
   }
   const delay = Math.min(8000, 500 * (2 ** reconnectAttempts));
   reconnectAttempts += 1;
-  updateStatus('╨Я╨╡╤А╨╡╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡...', false);
-  showMessage('╨б╨▓╤П╨╖╤М ╨┐╤А╨╡╤А╨▓╨░╨╜╨░. ╨Я╨╛╨▓╤В╨╛╤А╨╜╨╛╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡...');
+  updateStatus('Переподключение...', false);
+  showMessage('Связь прервана. Повторное подключение...');
   reconnectTimer = setTimeout(async () => {
     reconnectTimer = null;
     const connected = await connectToDevice(device, true);
@@ -455,20 +535,11 @@ function scheduleReconnect(device) {
 }
 
 async function connectToDevice(device, silent) {
-  if (!device) {
-    return false;
-  }
-  if (characteristic && lampDevice === device && device.gatt.connected) {
-    return true;
-  }
-  if (connectionPromise) {
-    return connectionPromise;
-  }
-  if (silent) {
-    updateStatus('╨Я╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡...', false);
-  } else {
-    showMessage('╨Я╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ╨║ ╨╗╨╡╨╜╤В╨╡...');
-  }
+  if (hasNativeBle) { return nativeConnected; }
+  if (!device) { return false; }
+  if (characteristic && lampDevice === device && device.gatt.connected) { return true; }
+  if (connectionPromise) { return connectionPromise; }
+  if (silent) { updateStatus('Подключение...', false); } else { showMessage('Подключение к ленте...'); }
 
   connectionPromise = (async () => {
     try {
@@ -480,24 +551,17 @@ async function connectToDevice(device, silent) {
       rememberedDevice = device;
       manualDisconnect = false;
       reconnectAttempts = 0;
-      if (reconnectTimer) {
-        clearTimeout(reconnectTimer);
-        reconnectTimer = null;
-      }
-      updateStatus('╨Я╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛', true);
+      if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+      updateStatus('Подключено', true);
       deviceName.textContent = device.name || 'ELK-BLEDDM';
       disconnectButton.hidden = false;
-      if (!silent) {
-        showMessage('╨Ы╨╡╨╜╤В╨░ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨░. ╨Ь╨╛╨╢╨╜╨╛ ╤Г╨┐╤А╨░╨▓╨╗╤П╤В╤М ╤Б╨▓╨╡╤В╨╛╨╝.');
-      }
+      if (!silent) { showMessage('Лента подключена. Можно управлять светом.'); }
       applyState();
       return true;
     } catch (error) {
       characteristic = null;
-      updateStatus('╨Э╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛', false);
-      if (!silent) {
-        showMessage('╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨┐╨╛╨┤╨║╨╗╤О╤З╨╕╤В╤М╤Б╤П: ' + error.message);
-      }
+      updateStatus('Не подключено', false);
+      if (!silent) { showMessage('Не удалось подключиться: ' + error.message); }
       return false;
     } finally {
       connectionPromise = null;
@@ -513,6 +577,11 @@ function findLamp(devices) {
 }
 
 async function restoreKnownDevice() {
+  if (hasNativeBle) {
+    if (nativeConnected) return true;
+    try { AndroidBle.tryAutoConnect(); } catch (_) {}
+    return nativeConnected;
+  }
   if (!navigator.bluetooth || characteristic || connectionPromise || discovering) {
     return Boolean(characteristic);
   }
@@ -523,9 +592,7 @@ async function restoreKnownDevice() {
       const devices = await navigator.bluetooth.getDevices();
       device = findLamp(devices) || device;
     }
-    if (!device) {
-      return false;
-    }
+    if (!device) { return false; }
     rememberedDevice = device;
     return await connectToDevice(device, true);
   } catch (error) {
@@ -536,17 +603,24 @@ async function restoreKnownDevice() {
 }
 
 async function requestLamp() {
-  if (requestPromise) {
-    return requestPromise;
+  if (hasNativeBle) {
+    manualDisconnect = false;
+    reconnectAttempts = 0;
+    stopEffect();
+    updateStatus('Поиск лампы...', false);
+    showMessage('Поиск и подключение к ленте...');
+    try { AndroidBle.requestConnect(); } catch (e) { showMessage('Ошибка Bluetooth: ' + (e && e.message ? e.message : e)); }
+    return false;
   }
+  if (requestPromise) { return requestPromise; }
   requestPromise = (async () => {
     if (!navigator.bluetooth) {
-      showMessage('Web Bluetooth ╨╜╨╡╨┤╨╛╤Б╤В╤Г╨┐╨╡╨╜. ╨Ю╤В╨║╤А╨╛╨╣╤В╨╡ ╤Б╤В╤А╨░╨╜╨╕╤Ж╤Г ╨▓ Chrome ╨╜╨░ Android ╨┐╨╛ HTTPS.');
+      showMessage('Web Bluetooth недоступен. Откройте страницу в Chrome на Android по HTTPS.');
       return false;
     }
     stopEffect();
     reconnectAttempts = 0;
-    showMessage('╨Т╤Л╨▒╨╡╤А╨╕╤В╨╡ ╨╗╨╡╨╜╤В╤Г ELK ╨▓ ╨╛╨║╨╜╨╡ Bluetooth...');
+    showMessage('Выберите ленту ELK в окне Bluetooth...');
     try {
       const device = await navigator.bluetooth.requestDevice({
         filters: [
@@ -559,31 +633,25 @@ async function requestLamp() {
       rememberedDevice = device;
       return await connectToDevice(device, false);
     } catch (error) {
-      if (error.name === 'NotFoundError') {
-        showMessage('╨Я╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╕╨╡ ╨╛╤В╨╝╨╡╨╜╨╡╨╜╨╛');
-      } else {
-        showMessage('╨Э╨╡ ╤Г╨┤╨░╨╗╨╛╤Б╤М ╨┐╨╛╨┤╨║╨╗╤О╤З╨╕╤В╤М╤Б╤П: ' + error.message);
-      }
+      if (error.name === 'NotFoundError') { showMessage('Подключение отменено'); }
+      else { showMessage('Не удалось подключиться: ' + error.message); }
       return false;
     }
   })();
-  try {
-    return await requestPromise;
-  } finally {
-    requestPromise = null;
-  }
+  try { return await requestPromise; } finally { requestPromise = null; }
 }
 
 async function ensureConnected() {
-  if (characteristic) {
-    return true;
+  if (hasNativeBle) {
+    if (nativeConnected) return true;
+    try { AndroidBle.tryAutoConnect(); } catch (_) {}
+    if (nativeConnected) return true;
+    requestLamp();
+    return false;
   }
-  if (connectionPromise) {
-    return connectionPromise;
-  }
-  if (await restoreKnownDevice()) {
-    return true;
-  }
+  if (characteristic) { return true; }
+  if (connectionPromise) { return connectionPromise; }
+  if (await restoreKnownDevice()) { return true; }
   return requestLamp();
 }
 
@@ -593,23 +661,23 @@ async function connectLamp() {
 
 function disconnectLamp() {
   manualDisconnect = true;
-  if (reconnectTimer) {
-    clearTimeout(reconnectTimer);
-    reconnectTimer = null;
-  }
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   reconnectAttempts = maxReconnectAttempts;
   stopEffect();
-  const device = lampDevice;
-  if (device && device.gatt.connected) {
-    device.gatt.disconnect();
+  if (hasNativeBle) {
+    try { AndroidBle.disconnect(); } catch (_) {}
+  } else {
+    const device = lampDevice;
+    if (device && device.gatt.connected) { device.gatt.disconnect(); }
   }
   characteristic = null;
   lampDevice = null;
+  nativeConnected = false;
   powerOn = false;
-  updateStatus('╨Э╨╡ ╨┐╨╛╨┤╨║╨╗╤О╤З╨╡╨╜╨╛', false);
+  updateStatus('Не подключено', false);
   deviceName.textContent = '';
   disconnectButton.hidden = true;
-  showMessage('╨Ы╨╡╨╜╤В╨░ ╨╛╤В╨║╨╗╤О╤З╨╡╨╜╨░');
+  showMessage('Лента отключена');
   applyState();
 }
 
@@ -623,7 +691,7 @@ async function setPower(on) {
   }
   powerOn = on;
   liveColor = null;
-  showMessage(on ? '╨Ы╨╡╨╜╤В╨░ ╨▓╨║╨╗╤О╤З╨╡╨╜╨░' : '╨Ы╨╡╨╜╤В╨░ ╨▓╤Л╨║╨╗╤О╤З╨╡╨╜╨░');
+  showMessage(on ? 'Лента включена' : 'Лента выключена');
   applyState();
 }
 
@@ -637,7 +705,7 @@ async function setColor(hex) {
     return;
   }
   liveColor = null;
-  showMessage('╨ж╨▓╨╡╤В: ' + color);
+  showMessage('Цвет: ' + color);
   applyState();
 }
 
@@ -651,7 +719,7 @@ async function setBrightness(level) {
     return;
   }
   liveColor = null;
-  showMessage('╨п╤А╨║╨╛╤Б╤В╤М: ' + level);
+  showMessage('Яркость: ' + level);
   applyState();
 }
 
@@ -664,14 +732,14 @@ async function setSpeed(level) {
   if (!await send(speedCommand(level))) {
     return;
   }
-  showMessage('╨б╨║╨╛╤А╨╛╤Б╤В╤М ╤Н╤Д╤Д╨╡╨║╤В╨░: ' + level);
+  showMessage('Скорость эффекта: ' + level);
   applyState();
 }
 
 async function setProfile(value) {
   stopEffect();
   profile = value;
-  showMessage('╨Я╤А╨╛╤Д╨╕╨╗╤М ╨║╨╛╨╝╨░╨╜╨┤: ' + value);
+  showMessage('Профиль команд: ' + value);
   applyState();
 }
 
@@ -740,66 +808,54 @@ async function startPulse(token) {
   }
 }
 
-async function activateMode(selected) {
-  if (!await ensureConnected()) {
-    return;
-  }
+async async function activateMode(selected) {
+  if (selected === 'fnaf') { await enterFnafMode(); return; }
+  if (fnafActive) { await exitFnafMode(); }
+  if (!await ensureConnected()) { return; }
   stopEffect();
   const token = effectToken;
   if (selected === 'off') {
-    if (!await send(colorCommand(color))) {
-      return;
-    }
+    if (!await send(colorCommand(color))) { return; }
     liveColor = null;
-    showMessage('╨б╤В╨░╤В╨╕╤З╨╜╤Л╨╣ ╤Ж╨▓╨╡╤В');
+    mode = 'off';
+    showMessage('Статичный цвет');
     applyState();
     return;
   }
   mode = selected;
   applyState();
 
-  if (selected === 'strobe') {
-    showMessage('╨б╤В╤А╨╛╨▒╨╛╤Б╨║╨╛╨┐ ╨▓╨║╨╗╤О╤З╤С╨╜');
-    startStrobe(token);
-    return;
-  }
-  if (selected === 'rainbow') {
-    showMessage('╨а╨╡╨╢╨╕╨╝: ╤А╨░╨┤╤Г╨│╨░');
-    startRainbow(token);
-    return;
-  }
-  if (selected === 'pulse') {
-    showMessage('╨а╨╡╨╢╨╕╨╝: ╨┐╤Г╨╗╤М╤Б');
-    startPulse(token);
-    return;
-  }
+  if (selected === 'strobe') { showMessage('Стробоскоп включён'); startStrobe(token); return; }
+  if (selected === 'rainbow') { showMessage('Режим: радуга'); startRainbow(token); return; }
+  if (selected === 'pulse') { showMessage('Режим: пульс'); startPulse(token); return; }
 
   const effect = EFFECTS[selected];
-  if (!effect) {
-    return;
-  }
-  for (const packet of [onCommand(), brightnessCommand(brightness), speedCommand(speed), effectCommand(effect.id)]) {
-    if (token !== effectToken || !await send(packet)) {
-      return;
-    }
-  }
-  powerOn = true;
-  liveColor = shade(color, brightness);
-  renderLive();
-  showMessage('╨а╨╡╨╢╨╕╨╝: ' + effect.label);
+  if (!effect) { return; }
+  send(effectCommand(effect.id, speed)).then(ok => { if (ok) { showMessage('Режим: ' + effect.label); } });
 }
 
 connectButton.addEventListener('click', connectLamp);
 disconnectButton.addEventListener('click', disconnectLamp);
+
+const fnafCloseEl = document.getElementById('fnaf-close');
+const fnafBtnEl = document.getElementById('fnaf-btn');
+if (fnafCloseEl) fnafCloseEl.addEventListener('click', () => { exitFnafMode(); });
+if (fnafBtnEl) {
+  const press = (e) => { e.preventDefault(); fnafPress(); };
+  const release = (e) => { e.preventDefault(); fnafRelease(); };
+  fnafBtnEl.addEventListener('pointerdown', press);
+  fnafBtnEl.addEventListener('pointerup', release);
+  fnafBtnEl.addEventListener('pointercancel', release);
+  fnafBtnEl.addEventListener('pointerleave', release);
+}
+
 document.getElementById('on').addEventListener('click', () => setPower(true));
 document.getElementById('off').addEventListener('click', () => setPower(false));
 colorInput.addEventListener('input', () => { hexLabel.textContent = colorInput.value.toUpperCase(); });
 colorInput.addEventListener('change', () => setColor(colorInput.value));
 palette.addEventListener('click', event => {
   const button = event.target.closest('[data-color]');
-  if (!button) {
-    return;
-  }
+  if (!button) return;
   setColor(button.dataset.color);
 });
 brightnessInput.addEventListener('input', () => { brightnessValue.textContent = brightnessInput.value; });
@@ -825,15 +881,21 @@ document.querySelectorAll('.bottom-nav button').forEach(tab => {
 
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') {
-    restoreKnownDevice();
+    if (hasNativeBle) {
+      if (!nativeConnected && !manualDisconnect) { try { AndroidBle.tryAutoConnect(); } catch (_) {} }
+    } else {
+      restoreKnownDevice();
+    }
   }
 });
 
-if (!window.isSecureContext || !navigator.bluetooth) {
+if (hasNativeBle) {
+  secureHint.hidden = true;
+} else if (!window.isSecureContext || !navigator.bluetooth) {
   secureHint.hidden = false;
   secureHint.textContent = window.isSecureContext
-    ? '╨н╤В╨╛╤В ╨▒╤А╨░╤Г╨╖╨╡╤А ╨╜╨╡ ╨┐╨╛╨┤╨┤╨╡╤А╨╢╨╕╨▓╨░╨╡╤В Web Bluetooth. ╨Ш╤Б╨┐╨╛╨╗╤М╨╖╤Г╨╣╤В╨╡ Chrome ╨╜╨░ Android.'
-    : '╨Ф╨╗╤П Web Bluetooth ╨╕ ╤Г╤Б╤В╨░╨╜╨╛╨▓╨║╨╕ PWA ╨╛╤В╨║╤А╨╛╨╣╤В╨╡ ╤Б╤В╤А╨░╨╜╨╕╤Ж╤Г ╨┐╨╛ HTTPS (╨╕╨╗╨╕ ╤З╨╡╤А╨╡╨╖ localhost).';
+    ? 'Этот браузер не поддерживает Web Bluetooth. Используйте Chrome на Android.'
+    : 'Для Web Bluetooth и установки PWA откройте страницу по HTTPS (или через localhost).';
 }
 
 if ('serviceWorker' in navigator && window.isSecureContext) {
@@ -842,8 +904,58 @@ if ('serviceWorker' in navigator && window.isSecureContext) {
   });
 }
 
+window.onNativeBleConnected = function(name) {
+  nativeConnected = true;
+  characteristic = { native: true };
+  lampDevice = { name: name || 'ELK-BLEDDM' };
+  rememberedDevice = lampDevice;
+  manualDisconnect = false;
+  reconnectAttempts = 0;
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
+  updateStatus('Подключено', true);
+  deviceName.textContent = name || 'ELK-BLEDDM';
+  disconnectButton.hidden = false;
+  showMessage('Лента подключена. Можно управлять светом.');
+  applyState();
+};
+
+window.onNativeBleDisconnected = function(msg) {
+  var wasManual = manualDisconnect;
+  nativeConnected = false;
+  characteristic = null;
+  lampDevice = null;
+  powerOn = false;
+  liveColor = null;
+  stopEffect();
+  updateStatus('Не подключено', false);
+  deviceName.textContent = '';
+  disconnectButton.hidden = true;
+  if (msg) showMessage(msg);
+  applyState();
+  if (!wasManual && hasNativeBle) {
+    setTimeout(function(){ try { AndroidBle.tryAutoConnect(); } catch (_) {} }, 1500);
+  }
+};
+
+window.onNativeBleStatus = function(msg) {
+  if (msg) {
+    showMessage(msg);
+    if (!nativeConnected) updateStatus(msg, false);
+  }
+};
+
 applyState();
-restoreKnownDevice();
+if (hasNativeBle) {
+  secureHint.hidden = true;
+  showMessage('Автоподключение к лампе...');
+  setTimeout(function(){ try { AndroidBle.tryAutoConnect(); } catch (_) {} }, 400);
+  setTimeout(function(){ if (!nativeConnected && !manualDisconnect) { try { AndroidBle.requestConnect(); } catch (_) {} } }, 3000);
+  setInterval(function() {
+    if (!nativeConnected && !manualDisconnect) { try { AndroidBle.tryAutoConnect(); } catch (_) {} }
+  }, 7000);
+} else {
+  restoreKnownDevice();
+}
 </script>
 </body>
 </html>
